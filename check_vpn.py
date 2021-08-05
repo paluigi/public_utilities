@@ -1,15 +1,18 @@
 """
-Script to check if Nordvpn is connected
-Need root proviledges, put command in root crontab to execute at startup
-To be run on Up Squared (but compatible with Raspberry and other boards)
-Up Squared reference links:
-https://github.com/up-board/up-community/wiki/Pinout_UP2
-https://github.com/up-board/up-community/wiki/MRAA
-https://github.com/eclipse/mraa/blob/master/docs/up2.md
+Script to chek if VPN is connected and perform actions
+according to flag in file /home/luigi/selenium1/nordvpn_target
 
+If VPN is connected:
+    - If flag == 0, disconnect
+
+If VPN is disconnected:
+    - If flag == 1, connect
+
+Display status in LED
 Green: connected
 Yellow: disconnected
-Red: anything else
+Red: anything else, and in case of mismatch between status and target
+Need root proviledges, put command in root crontab to execute at startup
 """
 import subprocess
 import mraa
@@ -48,20 +51,35 @@ while True:
     # Check Nordvpn status
     status = subprocess.run(["nordvpn", "status"] , capture_output=True)
     vpn_status = status.stdout.decode("UTF-8")
+    # Check flag in file, only read first character
+    with open("/home/luigi/selenium1/nordvpn_target", "r") as f:
+        target = f.read(1)
     # If connected, turn on green and turn off everything else
     if re.match(re_conn, vpn_status):
         r_pin.write(0)
         y_pin.write(0)
         g_pin.write(1)
+        # If connected and flag is 0, turn on red and disconnect
+        if target == "0":
+            r_pin.write(1)
+            y_pin.write(0)
+            g_pin.write(0)
+            _ = subprocess.run(["nordvpn", "d"] , capture_output=True)
     # If disconnected, turn on yellow
     elif re.match(re_disc, vpn_status):
         r_pin.write(0)
         y_pin.write(1)
         g_pin.write(0)
-    # Else turn on red
+        # If disconnected and flag is 1, turn on red and connect
+        if target == "1":
+            r_pin.write(1)
+            y_pin.write(0)
+            g_pin.write(0)
+            _ = subprocess.run(["nordvpn", "1"] , capture_output=True)
+    # Anything else, turn on red
     else:
         r_pin.write(1)
         y_pin.write(0)
         g_pin.write(0)
-    # wait some seconds between checks
+    # wait 30 seconds between checks
     time.sleep(30)
