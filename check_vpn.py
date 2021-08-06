@@ -13,6 +13,7 @@ Green: connected
 Yellow: disconnected
 Red: anything else, and in case of mismatch between status and target
 Need root proviledges, put command in root crontab to execute at startup
+Requires prior insertion of Nordvpn credentials for root user
 """
 import subprocess
 import mraa
@@ -75,7 +76,7 @@ while True:
             r_pin.write(1)
             y_pin.write(0)
             g_pin.write(0)
-            _ = subprocess.run(["nordvpn", "1"] , capture_output=True)
+            _ = subprocess.run(["nordvpn", "c"] , capture_output=True)
     # Anything else, turn on red
     else:
         r_pin.write(1)
